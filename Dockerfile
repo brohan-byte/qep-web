@@ -2,9 +2,14 @@ FROM julia:1.12
 
 WORKDIR /app
 
-COPY Project.toml Manifest.toml ./
+ENV JULIA_NUM_THREADS=1
+ENV JULIA_CPU_THREADS=1
 ENV JULIA_PKG_PRECOMPILE_AUTO=0
-RUN julia --project=. -e 'using Pkg; Pkg.instantiate()'
+
+COPY Project.toml Manifest.toml ./
+
+RUN julia --project=. -e \
+    'using Pkg; Pkg.instantiate()'
 
 COPY . .
 
