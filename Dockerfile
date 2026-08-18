@@ -12,11 +12,4 @@ RUN julia --project=. -e 'using Pkg; Pkg.instantiate()'
 
 COPY . .
 
-CMD [
-    "julia",
-    "--startup-file=no",
-    "--compiled-modules=no",
-    "--project=.",
-    "web/server.jl"
-
-4
+CMD ["julia", "--startup-file=no", "--compiled-modules=no", "--project=.", "web/server.jl"]
