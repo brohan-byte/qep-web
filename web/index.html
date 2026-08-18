@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1"
+    >
+
+    <title>QEP Circuit Controller</title>
+    <link rel="stylesheet" href="/styles.css">
+</head>
+
+<body>
+<main>
+
+    <header>
+        <h1>QEP Circuit Controller</h1>
+        <p>
+            Find the nearest precomputed entanglement
+            purification circuit for a requested environment.
+        </p>
+    </header>
+
+
+    <section class="card">
+        <h2>Resource configuration</h2>
+
+        <div class="grid">
+            <label>
+                Number of registers
+                <input
+                    id="number_registers"
+                    type="number"
+                    value="5"
+                    min="2"
+                >
+            </label>
+
+            <label>
+                Purified pairs
+                <input
+                    id="purified_pairs"
+                    type="number"
+                    value="1"
+                    min="1"
+                >
+            </label>
+
+            <label>
+                Evolution metric
+                <select id="evolution_metric">
+                    <option value="logical_qubit_fidelity">
+                        Logical qubit fidelity
+                    </option>
+                </select>
+            </label>
+
+            <label>
+                Code distance
+                <input
+                    id="code_distance"
+                    type="number"
+                    value="1"
+                    min="1"
+                >
+            </label>
+        </div>
+    </section>
+
+
+    <section class="card">
+        <h2>Environment</h2>
+
+        <div class="grid">
+            <label>
+                Network fidelity
+                <input
+                    id="network_fidelity"
+                    type="number"
+                    value="0.90"
+                    step="0.001"
+                >
+            </label>
+
+            <label>
+                Total 2Q error
+                <input
+                    id="total_2q_error"
+                    type="number"
+                    value="0.03"
+                    step="0.001"
+                >
+            </label>
+
+            <label>
+                Measurement flip
+                <input
+                    id="measurement_flip"
+                    type="number"
+                    value="0.01"
+                    step="0.001"
+                >
+            </label>
+
+            <label>
+                Idle λ1
+                <input
+                    id="idle_lambda1"
+                    type="number"
+                    value="0.02"
+                    step="0.001"
+                >
+            </label>
+
+            <label>
+                Idle λ2
+                <input
+                    id="idle_lambda2"
+                    type="number"
+                    value="0.01"
+                    step="0.001"
+                >
+            </label>
+        </div>
+    </section>
+
+
+    <section class="card">
+        <h2>Pauli bias</h2>
+
+        <p class="muted">
+            X, Y, and Z are fractions of the total 2Q error
+            and must sum to 1.
+        </p>
+
+        <div class="grid">
+            <label>
+                X bias
+                <input
+                    id="bias_x"
+                    type="number"
+                    value="0.3333333333"
+                    step="0.01"
+                >
+            </label>
+
+            <label>
+                Y bias
+                <input
+                    id="bias_y"
+                    type="number"
+                    value="0.3333333333"
+                    step="0.01"
+                >
+            </label>
+
+            <label>
+                Z bias
+                <input
+                    id="bias_z"
+                    type="number"
+                    value="0.3333333334"
+                    step="0.01"
+                >
+            </label>
+        </div>
+    </section>
+
+
+    <button id="query-button">
+        Find circuit
+    </button>
+
+    <p id="status"></p>
+
+
+    <section id="results" class="hidden">
+
+        <div class="card">
+            <h2>Nearest database match</h2>
+            <div id="match-summary"></div>
+        </div>
+
+        <div class="card">
+            <h2>Environment comparison</h2>
+            <div id="environment-comparison"></div>
+        </div>
+
+
+        <div class="card">
+    <h2>Recommended circuit</h2>
+
+    <div id="circuit-summary"></div>
+
+    <div id="circuit-figure" class="figure"></div>
+
+    <h3>Circuit operations</h3>
+    <pre id="circuit-ops"></pre>
+</div>
+        <div class="card">
+            <h2>Performance</h2>
+            <div id="performance"></div>
+        </div>
+
+        <div class="card">
+            <h2>Optimization history</h2>
+            <div id="history-figure" class="figure"></div>
+        </div>
+
+        <div class="card">
+            <h2>F-in / F-out</h2>
+            <div id="fin-fout-figure" class="figure"></div>
+        </div>
+
+    </section>
+
+</main>
+
+<script src="/app.js"></script>
+</body>
+</html>
