@@ -15,7 +15,14 @@ const ANALYTICS_DIR = joinpath(
 )
 
 const HOST = get(ENV, "WEB_HOST", "0.0.0.0")
-const PORT = parse(Int, get(ENV, "WEB_PORT", "8080"))
+const PORT = parse(
+    Int,
+    get(
+        ENV,
+        "PORT",
+        "8080",
+    ),
+)
 
 # query_nearest_circuit.jl caches the manifest and tracks completed .jls files.
 load_manifest()
