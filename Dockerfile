@@ -3,8 +3,8 @@ FROM julia:1.12
 WORKDIR /app
 
 COPY Project.toml Manifest.toml ./
-
-RUN julia --project=. -e 'using Pkg; Pkg.instantiate(); Pkg.precompile()'
+ENV JULIA_PKG_PRECOMPILE_AUTO=0
+RUN julia --project=. -e 'using Pkg; Pkg.instantiate()'
 
 COPY . .
 
