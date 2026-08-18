@@ -1,15 +1,13 @@
-FROM julia:1.12
+FROM node:22-slim
 
 WORKDIR /app
 
-ENV JULIA_NUM_THREADS=1
-ENV JULIA_PKG_PRECOMPILE_AUTO=0
-ENV WEB_HOST=0.0.0.0
+COPY package.json ./
 
-COPY Project.toml Manifest.toml ./
-
-RUN julia --project=. -e 'using Pkg; Pkg.instantiate()'
+RUN npm install --omit=dev
 
 COPY . .
 
-CMD ["julia", "--startup-file=no", "--compiled-modules=no", "--project=.", "web/server.jl"]
+ENV NODE_ENV=production
+
+CMD ["npm", "start"]
