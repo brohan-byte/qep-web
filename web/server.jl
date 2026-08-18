@@ -212,8 +212,14 @@ end
 function router(req)
     uri = HTTP.URI(req.target)
     path = uri.path
-
-    if req.method == "GET" && path == "/"
+    println("REQUEST: ", req.method, " ", path)
+    if req.method == "GET" && path == "/health"
+        return HTTP.Response(
+            200,
+            ["Content-Type" => "text/plain"],
+            "ok",
+    )
+    elseif req.method == "GET" && path == "/"
         return serve_file(joinpath(WEB_DIR, "index.html"); cache=false)
     elseif req.method == "GET" && path == "/app.js"
         return serve_file(joinpath(WEB_DIR, "app.js"); cache=false)
@@ -247,4 +253,18 @@ load_index!()
 println("QEP lightweight web server: http://$(HOST):$(PORT)")
 println("Web points: ", length(POINTS[]))
 println("Strata:     ", length(STRATA[]))
+println("WEB_DIR = ", WEB_DIR)
+println(
+    "index.html exists = ",
+    isfile(joinpath(WEB_DIR, "index.html"))
+)
+println(
+    "app.js exists = ",
+    isfile(joinpath(WEB_DIR, "app.js"))
+)
+println(
+    "styles.css exists = ",
+    isfile(joinpath(WEB_DIR, "styles.css"))
+)
+
 HTTP.serve(router, HOST, PORT)
