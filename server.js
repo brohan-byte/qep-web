@@ -539,10 +539,10 @@ function queryNearest(body) {
 
     const assets = {
 
-        history_image:
+        history_data:
             best.history_data,
 
-        fin_fout_image:
+        fin_fout_data:
             best.fin_fout_data,
     };
 

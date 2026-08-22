@@ -1078,7 +1078,41 @@ async function queryCircuit() {
         // --------------------------------------------------------------------
         // Saved performance
         // --------------------------------------------------------------------
+        // --------------------------------------------------------------------
+// Recommended circuit
+// --------------------------------------------------------------------
 
+if ($("circuit-summary")) {
+    $("circuit-summary").innerHTML = `
+        <p>
+            <strong>Circuit length:</strong>
+            ${result.circuit_length}
+        </p>
+    `;
+}
+
+
+if ($("circuit-ops")) {
+
+    if (
+        Array.isArray(result.circuit_ops) &&
+        result.circuit_ops.length > 0
+    ) {
+
+        $("circuit-ops").textContent =
+            result.circuit_ops
+                .map(
+                    (op, index) =>
+                        `${index + 1}. ${op}`
+                )
+                .join("\n");
+
+    } else {
+
+        $("circuit-ops").textContent =
+            "<empty circuit>";
+    }
+}
         const p =
             result.performance;
 
@@ -1163,13 +1197,13 @@ async function queryCircuit() {
         // --------------------------------------------------------------------
 
         await renderHistory(
-            result.assets.history_data
+            result.assets?.history_data
 
         );
 
 
         await renderFinFout(
-            result.assets.fin_fout_data
+            result.assets?.fin_fout_data
         );
 
 
