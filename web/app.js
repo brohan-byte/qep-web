@@ -758,9 +758,8 @@ async function renderFinFout(url) {
             title:
                 "F-in / F-out",
 
-            xValues:P1+r436F=323536\P1+r6B75=1B4F41\P1+r6B64=1B4F42\P1+r6B72=1B4F43\P1+r6B6C=1B4F44\P1+r2332=1B5B313B3248\P1+r2334=1B5B313B3244\P1+r2569=1B5B313B3243\P1+r2A37=1B5B313B3246\P1+r6B31=1B4F50\P1$r2 q\
+            xValues:
                 data.f_ins,
-
             series: [
                 {
                     label:
