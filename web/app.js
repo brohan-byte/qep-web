@@ -1163,12 +1163,13 @@ async function queryCircuit() {
         // --------------------------------------------------------------------
 
         await renderHistory(
-            result.history_data
+            result.assets.history_data
+
         );
 
 
         await renderFinFout(
-            result.fin_fout_data
+            result.assets.fin_fout_data
         );
 
 
