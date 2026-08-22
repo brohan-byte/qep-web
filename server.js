@@ -670,12 +670,18 @@ app.use(
     express.static(
         ANALYTICS_DIR,
         {
-            maxAge:
-                "1h",
+            maxAge: 0,
+            etag: false,
+
+            setHeaders: res => {
+                res.setHeader(
+                    "Cache-Control",
+                    "no-store"
+                );
+            },
         }
     )
 );
-
 
 // ============================================================
 // Frontend
