@@ -760,6 +760,7 @@ async function renderFinFout(url) {
 
             xValues:
                 data.f_ins,
+
             series: [
                 {
                     label:
@@ -798,7 +799,7 @@ async function renderFinFout(url) {
 
 
     container.appendChild(
-        fi[?12;2$ydelityContainer
+        fidelityContainer
     );
 
 
