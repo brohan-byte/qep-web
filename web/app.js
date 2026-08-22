@@ -752,56 +752,39 @@ async function renderFinFout(url) {
         document.createElement("div");
 
 
-    renderLinePlot(
-        fidelityContainer,
-        {
-            title:
-                "F-in / F-out",
+renderLinePlot(
+    fidelityContainer,
+    {
+        title: "F-in / F-out",
 
-            xValues:
-                data.f_ins,
+        xValues: data.f_ins,
 
-            series: [
-                {
-                    label:
-                        "Noisy F-out",
+        series: [
+            {
+                label: "Noisy F-out",
+                values: data.f_out_noise,
+            },
 
-                    values:
-                        data.f_out_noise,
-                },
+            {
+                label: "Clean F-out",
+                values: data.f_out_clean,
+            },
 
-                {
-                    label:
-                        "Clean F-out",
+            {
+                label: "F-out = F-in",
+                values: data.f_ins,
+                dashed: true,
+            },
+        ],
 
-                    values:
-                        data.f_out_clean,
-                },
+        xLabel: "F-in",
+        yLabel: "F-out",
+    }
+);
 
-                {
-                    label:
-                        "F-out = F-in",
-
-                    values:
-                        data.f_ins,
-
-                    dashed: true,
-                },
-            ],
-
-            xLabel:
-                "F-in",
-
-            yLabel:
-                "F-out",
-        }
-    );
-
-
-    container.appendChild(
-        fidelityContainer
-    );
-
+container.appendChild(
+    fidelityContainer
+);
 
     // ------------------------------------------------------------------------
     // Success probability plot
