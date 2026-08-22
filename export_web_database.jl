@@ -5,9 +5,25 @@ using JSON3
 using QEPOptimize
 import BPGates
 import QuantumClifford
+const EXPERIMENTS_DIR = joinpath(
+    @__DIR__,
+    "..",
+    "experiments",
+)
 
-const POINTS_DIR = joinpath(@__DIR__, "results", "database", "points")
-const ANALYTICS_DIR = joinpath(@__DIR__, "results", "database", "analytics")
+const POINTS_DIR = joinpath(
+    EXPERIMENTS_DIR,
+    "results",
+    "database",
+    "points",
+)
+
+const ANALYTICS_DIR = joinpath(
+    EXPERIMENTS_DIR,
+    "results",
+    "database",
+    "analytics",
+)
 const OUTPUT_DIR = joinpath(@__DIR__, "web_export")
 const OUTPUT_FILE = joinpath(OUTPUT_DIR, "web_index.json")
 mkpath(OUTPUT_DIR)
@@ -29,7 +45,13 @@ const REQUIRE_CIRCUIT = env_bool("WEB_REQUIRE_CIRCUIT")
 const REQUIRE_HISTORY = env_bool("WEB_REQUIRE_HISTORY")
 const REQUIRE_FIN_FOUT = env_bool("WEB_REQUIRE_FIN_FOUT")
 const EXPORT_LIMIT = export_limit()
-
+const EXPORT_ID = strip(
+    get(
+        ENV,
+        "WEB_EXPORT_ID",
+        "",
+    ),
+)
 safe_filename(id) = replace(String(id), r"[^A-Za-z0-9_.\-]" => "_")
 getprop_or(x, name::Symbol, default=nothing) = hasproperty(x, name) ? getproperty(x, name) : default
 config_value(cfg, name::Symbol, default=nothing) = hasproperty(cfg, name) ? getproperty(cfg, name) : default
@@ -46,20 +68,54 @@ function saved_performance(saved)
 end
 
 function asset_info(id_string)
+
     id = safe_filename(id_string)
-    circuit_path = joinpath(ANALYTICS_DIR, "circuits", id * ".png")
-    history_path = joinpath(ANALYTICS_DIR, "history", id * ".png")
-    fin_fout_path = joinpath(ANALYTICS_DIR, "fin_fout", "plots", id * ".png")
+
+    circuit_path = joinpath(
+        ANALYTICS_DIR,
+        "circuits",
+        id * ".png",
+    )
+
+    history_data_path = joinpath(
+        ANALYTICS_DIR,
+        "history_data",
+        id * ".json",
+    )
+
+    fin_fout_data_path = joinpath(
+        ANALYTICS_DIR,
+        "fin_fout",
+        "data_json",
+        id * ".json",
+    )
+
     (
-        has_circuit = isfile(circuit_path),
-        has_history = isfile(history_path),
-        has_fin_fout = isfile(fin_fout_path),
-        circuit_image = isfile(circuit_path) ? "/assets/circuits/$(id).png" : nothing,
-        history_image = isfile(history_path) ? "/assets/history/$(id).png" : nothing,
-        fin_fout_image = isfile(fin_fout_path) ? "/assets/fin_fout/plots/$(id).png" : nothing,
+        has_circuit =
+            isfile(circuit_path),
+
+        has_history =
+            isfile(history_data_path),
+
+        has_fin_fout =
+            isfile(fin_fout_data_path),
+
+        circuit_image =
+            isfile(circuit_path) ?
+            "/assets/circuits/$(id).png" :
+            nothing,
+
+        history_data =
+            isfile(history_data_path) ?
+            "/assets/history_data/$(id).json" :
+            nothing,
+
+        fin_fout_data =
+            isfile(fin_fout_data_path) ?
+            "/assets/fin_fout/data_json/$(id).json" :
+            nothing,
     )
 end
-
 function point_is_usable(a)
     REQUIRE_CIRCUIT && !a.has_circuit && return false
     REQUIRE_HISTORY && !a.has_history && return false
@@ -106,8 +162,8 @@ function export_point(path)
         success_probability = performance_value(perf, :success_probability),
         reliable = getprop_or(saved, :reliable, nothing),
         circuit_image = assets.circuit_image,
-        history_image = assets.history_image,
-        fin_fout_image = assets.fin_fout_image,
+        history_data = assets.history_data,
+        fin_fout_data = assets.fin_fout_data,
     )
 end
 
@@ -140,8 +196,30 @@ end
 
 function main()
     isdir(POINTS_DIR) || error("Points directory does not exist: $POINTS_DIR")
-    files = sort(filter(f -> endswith(f, ".jls"), readdir(POINTS_DIR; join=true)))
+files = if isempty(EXPORT_ID)
 
+    sort(filter(
+        f -> endswith(f, ".jls"),
+        readdir(
+            POINTS_DIR;
+            join=true,
+        ),
+    ))
+
+else
+
+    path = joinpath(
+        POINTS_DIR,
+        EXPORT_ID * ".jls",
+    )
+
+    isfile(path) || error(
+        "Requested WEB_EXPORT_ID does not exist: $path"
+    )
+
+    [path]
+
+end
     println("="^72)
     println("EXPORTING LIGHTWEIGHT WEB DATABASE")
     println("Completed .jls files:   ", length(files))
