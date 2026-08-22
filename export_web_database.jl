@@ -41,7 +41,6 @@ function export_limit()
     n
 end
 
-const REQUIRE_CIRCUIT = env_bool("WEB_REQUIRE_CIRCUIT")
 const REQUIRE_HISTORY = env_bool("WEB_REQUIRE_HISTORY")
 const REQUIRE_FIN_FOUT = env_bool("WEB_REQUIRE_FIN_FOUT")
 const EXPORT_LIMIT = export_limit()
@@ -71,11 +70,11 @@ function asset_info(id_string)
 
     id = safe_filename(id_string)
 
-    circuit_path = joinpath(
-        ANALYTICS_DIR,
-        "circuits",
-        id * ".png",
-    )
+   
+ 
+
+
+
 
     history_data_path = joinpath(
         ANALYTICS_DIR,
@@ -91,8 +90,6 @@ function asset_info(id_string)
     )
 
     (
-        has_circuit =
-            isfile(circuit_path),
 
         has_history =
             isfile(history_data_path),
@@ -100,10 +97,6 @@ function asset_info(id_string)
         has_fin_fout =
             isfile(fin_fout_data_path),
 
-        circuit_image =
-            isfile(circuit_path) ?
-            "/assets/circuits/$(id).png" :
-            nothing,
 
         history_data =
             isfile(history_data_path) ?
@@ -117,7 +110,7 @@ function asset_info(id_string)
     )
 end
 function point_is_usable(a)
-    REQUIRE_CIRCUIT && !a.has_circuit && return false
+   
     REQUIRE_HISTORY && !a.has_history && return false
     REQUIRE_FIN_FOUT && !a.has_fin_fout && return false
     true
@@ -161,7 +154,7 @@ function export_point(path)
         average_marginal_fidelity = performance_value(perf, :average_marginal_fidelity),
         success_probability = performance_value(perf, :success_probability),
         reliable = getprop_or(saved, :reliable, nothing),
-        circuit_image = assets.circuit_image,
+       
         history_data = assets.history_data,
         fin_fout_data = assets.fin_fout_data,
     )
@@ -223,7 +216,7 @@ end
     println("="^72)
     println("EXPORTING LIGHTWEIGHT WEB DATABASE")
     println("Completed .jls files:   ", length(files))
-    println("Require circuit PNG:    ", REQUIRE_CIRCUIT)
+   
     println("Require history PNG:    ", REQUIRE_HISTORY)
     println("Require F-in/F-out PNG: ", REQUIRE_FIN_FOUT)
     println("Export limit:            ", isnothing(EXPORT_LIMIT) ? "none" : EXPORT_LIMIT)

@@ -538,14 +538,12 @@ function queryNearest(body) {
 
 
     const assets = {
-        circuit_image:
-            best.circuit_image,
 
         history_image:
-            best.history_image,
+            best.history_data,
 
         fin_fout_image:
-            best.fin_fout_image,
+            best.fin_fout_data,
     };
 
 

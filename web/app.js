@@ -1,10 +1,7 @@
-const $ = id => document.getElementById(id);
-
-
 function number(id) {
+
     return Number($(id).value);
 }
-
 
 function environmentTable(requested, matched) {
     const rows = [
@@ -349,26 +346,17 @@ number_registers: number("number_registers"),
         // happens here.
         // --------------------------------------------------------------
 
-        renderImage(
-            "circuit-figure",
-            "Circuit image",
-            result.assets.circuit_image
-        );
+        await renderHistory(
 
+    result.assets.history_data
 
-        renderImage(
-            "history-figure",
-            "Optimization history",
-            result.assets.history_image
-        );
+);
 
+await renderFinFout(
 
-        renderImage(
-            "fin-fout-figure",
-            "F-in / F-out analysis",
-            result.assets.fin_fout_image
-        );
+    result.assets.fin_fout_data
 
+);
 
         $("results").classList.remove("hidden");
 
