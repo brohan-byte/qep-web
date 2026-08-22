@@ -570,120 +570,84 @@ function renderLinePlot(
 // ============================================================================
 
 async function renderHistory(url) {
-
-    const container =
-        $("history-figure");
-
-    if (!container) {
-        return;
-    }
-
+    const container = document.getElementById("history-figure");
 
     if (!url) {
-
-        container.innerHTML = `
-            <p class="muted">
-                Optimization history is not available for this point.
-            </p>
-        `;
-
+        container.innerHTML =
+            "<p>Optimization history is not available.</p>";
         return;
     }
 
+    const data = await fetch(url).then(r => r.json());
 
-    const response =
-        await fetch(url);
+    const fitness = data.fitness_history;
 
-
-    if (!response.ok) {
-
-        throw new Error(
-            `Failed to load optimization history (${response.status})`
-        );
-    }
-
-
-    const data =
-        await response.json();
-
-
-    if (
-        !Array.isArray(
-            data.fitness_history
-        ) ||
-        data.fitness_history.length === 0
-    ) {
-
-        container.innerHTML = `
-            <p class="muted">
-                Optimization history is empty.
-            </p>
-        `;
-
-        return;
-    }
-
+    const best = fitness.map(row => Math.max(...row));
+    const worst = fitness.map(row => Math.min(...row));
 
     const generations =
-        data.fitness_history.map(
-            (_, index) =>
-                index + 1
-        );
+        fitness.map((_, i) => i + 1);
+
+    container.innerHTML = `
+        <div id="fitness-heatmap"></div>
+        <div id="best-worst"></div>
+        <div id="transition-counts"></div>
+    `;
+
+    // Same idea as:
+    // plot!(fitness_history[:, end:-1:begin])
+    Plotly.newPlot("fitness-heatmap", [{
+        z: fitness.map(row => [...row].reverse()),
+        type: "heatmap",
+        zmin: 0.9,
+        zmax: 1.0
+    }], {
+        xaxis: { title: "Generation" },
+        yaxis: { title: "Individual" }
+    });
 
 
-    renderLinePlot(
-        container,
+    // Same as maximum/minimum(fitness_history, dims=2)
+    Plotly.newPlot("best-worst", [
         {
-            title:
-                "Optimization history",
+            x: generations,
+            y: best,
+            type: "scatter",
+            mode: "lines",
+            name: "Best"
+        },
+        {
+            x: generations,
+            y: worst,
+            type: "scatter",
+            mode: "lines",
+            name: "Worst"
+        }
+    ], {
+        xaxis: { title: "Generation" },
+        yaxis: { title: "Fitness" }
+    });
 
-            xValues:
-                generations,
 
-            series: [
-                {
-                    label: "Fitness",
-                    values:
-                        data.fitness_history,
-                },
-            ],
+    // Same as your transition-count loop
+    const transitionTraces =
+        data.transition_counts_keys.map((key, column) => ({
+            x: generations,
+            y: data.transition_counts_matrix.map(row => row[column]),
+            type: "scatter",
+            mode: "lines",
+            name: String(key)
+        }));
 
-            xLabel:
-                "Generation",
-
-            yLabel:
-                "Fitness",
-
-            xFormatter:
-                value =>
-                    String(
-                        Math.round(value)
-                    ),
+    Plotly.newPlot(
+        "transition-counts",
+        transitionTraces,
+        {
+            xaxis: { title: "Generation" },
+            yaxis: { title: "Type" }
         }
     );
-
-
-    if (
-        data.plateau_generation !== null &&
-        data.plateau_generation !== undefined
-    ) {
-
-        const plateau =
-            document.createElement("p");
-
-        plateau.className =
-            "muted";
-
-        plateau.textContent =
-            `Plateau generation: ${data.plateau_generation}`;
-
-        container.appendChild(
-            plateau
-        );
-    }
 }
-
-
 // ============================================================================
 // F-in / F-out
 // ============================================================================
