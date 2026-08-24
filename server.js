@@ -407,31 +407,58 @@ try {
 } catch (error) {
     console.error("FIN ERROR:", error);
 }
-
+    const matched = {
+    network_fidelity: best.network_fidelity,
+    total_2q_error: best.total_2q_error,
+    measurement_flip: best.measurement_flip,
+    idle_lambda1: best.idle_lambda1,
+    idle_lambda2: best.idle_lambda2,
+    bias_x: best.bias_x,
+    bias_y: best.bias_y,
+    bias_z: best.bias_z
+};
     return {
+    id_string: best.id_string,
 
-        id_string:
-            best.id_string,
+    distance: bestDistance,
 
-        distance:
-            bestDistance,
+    matched,
 
+    circuit_length:
+        Number(metadata.circuit_length),
 
-        circuit_length:
-            Number(metadata.circuit_length),
+    circuit_ops:
+        Array.isArray(metadata.circuit_ops)
+        ? metadata.circuit_ops
+        : [],
 
+    performance: {
+        logical_qubit_fidelity:
+            metadata.logical_qubit_fidelity,
 
-        circuit_ops:
-            Array.isArray(metadata.circuit_ops)
-            ? metadata.circuit_ops
-            : [],
+        purified_pairs_fidelity:
+            metadata.purified_pairs_fidelity,
 
+        average_marginal_fidelity:
+            metadata.average_marginal_fidelity,
 
-        performance: {
-    logical_qubit_fidelity: metadata.logical_qubit_fidelity,
-    purified_pairs_fidelity: metadata.purified_pairs_fidelity,
-    average_marginal_fidelity: metadata.average_marginal_fidelity,
-    success_probability: metadata.success_probability
+        success_probability:
+            metadata.success_probability
+    },
+
+    reliable:
+        metadata.reliable,
+
+    requested,
+
+    assets: {
+        history_data:
+            `${HISTORY_BASE_URL}/shard_${historyShard(best.id_string)}.jsonl.gz`,
+
+        fin_fout_data:
+            finFout
+    }
+};
 },
 
         reliable:
