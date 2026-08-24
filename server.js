@@ -92,14 +92,12 @@ function metadataShard(id) {
 }
 
 async function loadFinFout(id) {
-    console.log("FIN ID:", id);
-console.log("FIN SHARD:", shard);
-console.log("FIN URL:", url);
     const shard = finFoutShard(id);
 const url =
     `${FIN_FOUT_BASE_URL}/shard_${shard}.jsonl.gz`;
     const response = await fetch(url);
-
+    console.log("FIN SHARD:", shard);
+console.log("FIN URL:", url);
     if (!response.ok) {
         throw new Error(
             `Fin fout shard failed: ${response.status}`
