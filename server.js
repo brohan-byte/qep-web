@@ -42,7 +42,6 @@ app.use(express.json());
 function finFoutShard(id) {
     const crypto = require("crypto");
 
-    const filename = `${id}.json`;
 
     return (
         parseInt(
@@ -61,13 +60,11 @@ function finFoutShard(id) {
 function metadataShard(id) {
     const crypto = require("crypto");
 
-    const filename = `${id}.json`;
-
     return (
         parseInt(
             crypto
                 .createHash("md5")
-                .update(filename)
+                .update(id)
                 .digest("hex")
                 .slice(0, 8),
             16
