@@ -402,15 +402,26 @@ app.use(
         }
     )
 );
+async function startServer() {
+    try {
+        await loadIndex();
 
-loadIndex();
-
-app.listen(
-    PORT,
-    "0.0.0.0",
-    () => {
-        console.log(
-            `QEP web server listening on 0.0.0.0:${PORT}`
+        app.listen(
+            PORT,
+            "0.0.0.0",
+            () => {
+                console.log(
+                    `QEP web server listening on 0.0.0.0:${PORT}`
+                );
+            }
         );
+    } catch (error) {
+        console.error(
+            "Failed to start server:",
+            error
+        );
+        process.exit(1);
     }
-);
+}
+
+startServer();
