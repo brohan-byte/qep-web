@@ -40,16 +40,16 @@ const WARNING_DISTANCE = 0.25;
 
 app.use(express.json());
 
-
-function shardOf(id) {
-
+function finFoutShard(id) {
     const crypto = require("crypto");
+
+    const filename = `${id}.json`;
 
     return (
         parseInt(
             crypto
                 .createHash("md5")
-                .update(id)
+                .update(filename)
                 .digest("hex")
                 .slice(0, 8),
             16
@@ -58,15 +58,11 @@ function shardOf(id) {
     .toString()
     .padStart(4, "0");
 }
-
-
 async function loadFinFout(id) {
 
-    const shard = shardOf(id);
-
-    const url =
-        `${FIN_FOUT_BASE_URL}/shard_${shard}.jsonl.gz`;
-
+    const shard = finFoutShard(id);
+const url =
+    `${FIN_FOUT_BASE_URL}/shard_${shard}.jsonl.gz`;
     const response = await fetch(url);
 
     if (!response.ok) {
@@ -353,21 +349,17 @@ async function queryNearest(body){
     }
 
 
-    const metadata =
-        await loadMetadata(
-            best.id_string
-        );
-if (!metadata) {
-    throw new Error(
-        `Missing metadata for ${best.id_string}`
+    const metadata = await loadMetadata(best.id_string);
+
+let finFout = null;
+
+try {
+    finFout = await loadFinFout(best.id_string);
+} catch (error) {
+    console.warn(
+        `No fin_fout data for ${best.id_string}`
     );
 }
-
-    const finFout =
-        await loadFinFout(
-            best.id_string
-        );
-
 
     return {
 
