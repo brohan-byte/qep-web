@@ -31,7 +31,15 @@ let points = [];
 let strata = new Map();
 
 app.use(express.json());
+function historyShard(id) {
+    const crypto = require("crypto");
 
+    return crypto
+        .createHash("md5")
+        .update(id)
+        .digest("hex")
+        .slice(0, 3);
+}
 function keyOf(point) {
     return [
         Number(point.number_registers),
@@ -304,11 +312,10 @@ function queryNearest(body) {
         requested,
         matched,
         assets: {
-    history_data:
-        best.history_data
-            ? `${ANALYTICS_BASE_URL}/history_data/${best.id_string}.json.gz`
-            : null,
-
+history_data:
+    best.history_data
+        ? `${ANALYTICS_BASE_URL}/history_data_sharded/${historyShard(best.id_string)}/${best.id_string}.json.gz`
+        : null,
     fin_fout_data:
         best.fin_fout_data
             ? `${ANALYTICS_BASE_URL}/fin_fout/${best.id_string}.json`
