@@ -58,6 +58,26 @@ function finFoutShard(id) {
     .toString()
     .padStart(4, "0");
 }
+
+function metadataShard(id) {
+    const crypto = require("crypto");
+
+    const filename = `${id}.json`;
+
+    return (
+        parseInt(
+            crypto
+                .createHash("md5")
+                .update(filename)
+                .digest("hex")
+                .slice(0, 8),
+            16
+        ) % 4096
+    )
+    .toString()
+    .padStart(4, "0");
+}
+
 async function loadFinFout(id) {
 
     const shard = finFoutShard(id);
@@ -100,8 +120,7 @@ const url =
 
 async function loadMetadata(id) {
 
-    const shard = shardOf(id);
-
+    const shard = metadataShard(id);
     const url =
         `${METADATA_BASE_URL}/shard_${shard}.jsonl.gz`;
 
