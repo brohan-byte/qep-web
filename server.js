@@ -459,24 +459,8 @@ try {
             finFout
     }
 };
-},
-
-        reliable:
-            metadata.reliable,
-
-
-        requested,
-
-
-        assets: {
-
-history_data:
-    `${HISTORY_BASE_URL}/shard_${historyShard(best.id_string)}.jsonl.gz`,
-            fin_fout_data:
-                finFout
-        }
-    };
 }
+
 
 
 app.get(
