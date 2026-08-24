@@ -119,11 +119,11 @@ const url =
 
 
 async function loadMetadata(id) {
-
     const shard = metadataShard(id);
     const url =
         `${METADATA_BASE_URL}/shard_${shard}.jsonl.gz`;
-
+    console.log("metadata url:", url);
+console.log("looking for:", id);
     const response = await fetch(url);
 
     if (!response.ok) {
