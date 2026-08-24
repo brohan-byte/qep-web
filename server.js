@@ -1,9 +1,8 @@
 const express = require("express");
 const path = require("path");
 const zlib = require("zlib");
-console.log("SERVER VERSION WITH DEBUG LOGS LOADED");
 const app = express();
-
+console.log("SERVER VERSION WITH DEBUG LOGS LOADED");
 const ROOT = __dirname;
 const WEB_DIR = path.join(ROOT, "web");
 const PORT = Number(process.env.PORT || 8080);
