@@ -1,7 +1,7 @@
 const express = require("express");
 const path = require("path");
 const zlib = require("zlib");
-
+console.log("SERVER VERSION WITH DEBUG LOGS LOADED");
 const app = express();
 
 const ROOT = __dirname;
