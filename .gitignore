@@ -4,3 +4,10 @@ results/database/analytics/history_data_sharded/
 results/database/analytics/history_data_gz/
 results/database/analytics/fin_fout/data_json/
 web_export/web_index.json
+results/database/analytics/fin_fout/data_json_sharded/
+# analytics data lives on HuggingFace
+results/database/analytics/
+web_index.json
+point_metadata.json
+history_data/
+fin_fout/
