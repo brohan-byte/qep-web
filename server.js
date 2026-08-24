@@ -54,9 +54,11 @@ function historyShard(id) {
     .toString()
     .padStart(4, "0");
 }
+
 function finFoutShard(id) {
     const crypto = require("crypto");
 
+    const filename = `${id}.json`;
 
     return (
         parseInt(
@@ -90,7 +92,9 @@ function metadataShard(id) {
 }
 
 async function loadFinFout(id) {
-
+    console.log("FIN ID:", id);
+console.log("FIN SHARD:", shard);
+console.log("FIN URL:", url);
     const shard = finFoutShard(id);
 const url =
     `${FIN_FOUT_BASE_URL}/shard_${shard}.jsonl.gz`;
