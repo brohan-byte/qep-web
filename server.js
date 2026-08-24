@@ -372,11 +372,6 @@ console.log("first candidate:", candidates[0]);
         continue;
     }
 
-    console.log(
-        "VECTOR POINT:",
-        point.id_string,
-        point.network_fidelity
-    );
 
     const distance =
         weightedDistance(
@@ -398,7 +393,10 @@ console.log("first candidate:", candidates[0]);
         );
     }
 
-
+    console.log("LOOP FINISHED");
+console.log("BEST:", best);
+console.log("BEST ID:", best?.id_string);
+console.log("BEST DISTANCE:", bestDistance);
     const metadata = await loadMetadata(best.id_string);
 
     let finFout = null;
