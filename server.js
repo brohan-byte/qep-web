@@ -390,14 +390,13 @@ console.log("first candidate:", candidates[0]);
 
     const metadata = await loadMetadata(best.id_string);
 
-let finFout = null;
+    let finFout = null;
 
 try {
     finFout = await loadFinFout(best.id_string);
+    console.log("FIN LOADED:", finFout);
 } catch (error) {
-    console.warn(
-        `No fin_fout data for ${best.id_string}`
-    );
+    console.error("FIN ERROR:", error);
 }
 
     return {
