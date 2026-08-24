@@ -232,7 +232,9 @@ function normalizeBiases(x, y, z) {
 
 
 function vector(environment) {
-
+     if (!environment) {
+        throw new Error("vector() received undefined environment");
+    }
     const physical =
         FIELDS.map((field, index) => {
 
@@ -355,7 +357,9 @@ async function queryNearest(body){
     let best = null;
     let bestDistance = Infinity;
 
-
+if (!Array.isArray(candidates)) {
+    throw new Error("Stratum is not an array");
+}
     for (const point of candidates){
 
         const distance =
@@ -371,7 +375,8 @@ async function queryNearest(body){
             bestDistance = distance;
         }
     }
-
+    console.log("candidate count:", candidates.length);
+console.log("first candidate:", candidates[0]);
 
     if (!best){
         throw new Error(
