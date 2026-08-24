@@ -7,12 +7,10 @@ const app = express();
 
 const ROOT = __dirname;
 const WEB_DIR = path.join(ROOT, "web");
-const INDEX_FILE = path.join(ROOT, "web_export", "web_index.json");
 const ANALYTICS_DIR = path.join(ROOT, "results", "database", "analytics");
-const INDEX_URL =
-    "https://huggingface.co/datasets/rohankpdi/qep-analytics/resolve/main/web_index.json";
 const PORT = Number(process.env.PORT || 8080);
-
+const INDEX_BASE_URL =
+    "https://huggingface.co/datasets/rohankpdi/qep-analytics/resolve/main/web_index_strata";
 const FIELDS = [
     "network_fidelity",
     "total_2q_error",
@@ -27,8 +25,6 @@ const WEIGHTS = [2, 3, 2, 1, 1, 1, 1];
 
 const WARNING_DISTANCE = 0.25;
 
-let points = [];
-let strata = new Map();
 
 app.use(express.json());
 function historyShard(id) {
@@ -48,32 +44,28 @@ function keyOf(point) {
         Number(point.code_distance),
     ].join("|");
 }
+async function loadStratum(
+    nr,
+    pp,
+    metric,
+    d
+) {
+    const filename =
+        `nr${nr}_pp${pp}_${metric}_d${d}.json`;
 
-async function loadIndex() {
-    const response = await fetch(INDEX_URL);
+    const url =
+        `${INDEX_BASE_URL}/${filename}`;
+
+    const response =
+        await fetch(url);
 
     if (!response.ok) {
         throw new Error(
-            `Failed to load web index: ${response.status}`
+            `Failed to load stratum ${filename}: ${response.status}`
         );
     }
 
-    points = await response.json();
-    strata = new Map();
-
-    for (const point of points) {
-        const key = keyOf(point);
-
-        if (!strata.has(key)) {
-            strata.set(key, []);
-        }
-
-        strata.get(key).push(point);
-    }
-
-    console.log(
-        `Loaded ${points.length} points across ${strata.size} strata`
-    );
+    return await response.json();
 }
 function normalizeBiases(x, y, z) {
     const biases = [Number(x), Number(y), Number(z)];
@@ -141,7 +133,7 @@ function weightedDistance(a, b) {
     );
 }
 
-function queryNearest(body) {
+async function queryNearest(body) {
     const nr = Number(body.number_registers);
     const pp = Number(body.purified_pairs);
     const metric = String(body.evolution_metric);
@@ -201,8 +193,12 @@ function queryNearest(body) {
     ].join("|");
 
     const candidates =
-        strata.get(key);
-
+    await loadStratum(
+        nr,
+        pp,
+        metric,
+        codeDistance
+    );
     if (!candidates?.length) {
         throw new Error(
             `No exported database points match: ` +
@@ -335,10 +331,10 @@ app.get(
 
 app.post(
     "/api/query",
-    (req, res) => {
+    async (req, res) => {
         try {
             res.json(
-                queryNearest(req.body)
+                   await queryNearest(req.body)
             );
         } catch (error) {
             console.error(error);
@@ -356,14 +352,9 @@ app.post(
     "/api/reload",
     (req, res) => {
         try {
-(async () => {
-    await loadIndex();
-    // start server here
-})();
-            res.json({
-                points: points.length,
-                strata: strata.size,
-            });
+        res.json({
+    message: "Index reload disabled: using sharded indexes"
+});
         } catch (error) {
             res
                 .status(500)
@@ -411,17 +402,15 @@ app.use(
 );
 async function startServer() {
     try {
-        await loadIndex();
-
-        app.listen(
-            PORT,
-            "0.0.0.0",
-            () => {
-                console.log(
-                    `QEP web server listening on 0.0.0.0:${PORT}`
-                );
-            }
+    app.listen(
+    PORT,
+    "0.0.0.0",
+    () => {
+        console.log(
+            `QEP web server listening on 0.0.0.0:${PORT}`
         );
+    }
+);
     } catch (error) {
         console.error(
             "Failed to start server:",
