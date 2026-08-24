@@ -38,7 +38,22 @@ const WEIGHTS = [2, 3, 2, 1, 1, 1, 1];
 const WARNING_DISTANCE = 0.25;
 
 app.use(express.json());
+function historyShard(id) {
+    const crypto = require("crypto");
 
+    return (
+        parseInt(
+            crypto
+                .createHash("md5")
+                .update(id)
+                .digest("hex")
+                .slice(0, 8),
+            16
+        ) % 4096
+    )
+    .toString()
+    .padStart(4, "0");
+}
 function finFoutShard(id) {
     const crypto = require("crypto");
 
@@ -409,9 +424,8 @@ try {
 
         assets: {
 
-            history_data:
-                `${HISTORY_BASE_URL}/shard_${shardOf(best.id_string)}.jsonl.gz`,
-
+history_data:
+    `${HISTORY_BASE_URL}/shard_${historyShard(best.id_string)}.jsonl.gz`,
             fin_fout_data:
                 finFout
         }
