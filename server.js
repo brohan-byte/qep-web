@@ -363,22 +363,33 @@ async function queryNearest(body){
 if (!Array.isArray(candidates)) {
     throw new Error("Stratum is not an array");
 }
+console.log("candidate count:", candidates.length);
+console.log("first candidate:", candidates[0]);
     for (const point of candidates){
 
-        const distance =
-            weightedDistance(
-                queryVector,
-                vector(point)
-            );
-
-
-        if (distance < bestDistance){
-
-            best = point;
-            bestDistance = distance;
-        }
+    if (!point) {
+        console.log("BAD POINT:", point);
+        continue;
     }
-    console.log("candidate count:", candidates.length);
+
+    console.log(
+        "VECTOR POINT:",
+        point.id_string,
+        point.network_fidelity
+    );
+
+    const distance =
+        weightedDistance(
+            queryVector,
+            vector(point)
+        );
+
+    if (distance < bestDistance){
+        best = point;
+        bestDistance = distance;
+    }
+}    
+console.log("candidate count:", candidates.length);
 console.log("first candidate:", candidates[0]);
 
     if (!best){
@@ -418,9 +429,12 @@ try {
             : [],
 
 
-        performance:
-            metadata.performance,
-
+        performance: {
+    logical_qubit_fidelity: metadata.logical_qubit_fidelity,
+    purified_pairs_fidelity: metadata.purified_pairs_fidelity,
+    average_marginal_fidelity: metadata.average_marginal_fidelity,
+    success_probability: metadata.success_probability
+},
 
         reliable:
             metadata.reliable,
