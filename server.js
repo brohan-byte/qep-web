@@ -41,6 +41,15 @@ function keyOf(point) {
 }
 
 function loadIndex() {
+    if (!fs.existsSync(INDEX_FILE)) {
+        console.warn(
+            "web_index.json not found, starting with empty index"
+        );
+        points = [];
+        strata = new Map();
+        return;
+    }
+
     points = JSON.parse(fs.readFileSync(INDEX_FILE, "utf8"));
     strata = new Map();
 
@@ -58,7 +67,6 @@ function loadIndex() {
         `Loaded ${points.length} points across ${strata.size} strata`
     );
 }
-
 function normalizeBiases(x, y, z) {
     const biases = [Number(x), Number(y), Number(z)];
 
