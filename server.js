@@ -121,9 +121,9 @@ console.log("FIN URL:", url);
         const record = JSON.parse(line);
         console.log("FIN RECORD ID:", JSON.stringify(record.id));
 console.log("TARGET ID:", JSON.stringify(id));
-        if (record.id === id) {
-            return record.data;
-        }
+        if (record.id.trim() === id.trim()) {
+    return record.data;
+}
     }
 
     throw new Error(
