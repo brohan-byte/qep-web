@@ -314,7 +314,7 @@ function queryNearest(body) {
         assets: {
 history_data:
     best.history_data
-        ? `${ANALYTICS_BASE_URL}/history_data_sharded/${historyShard(best.id_string)}/${best.id_string}.json.gz`
+        ? `${ANALYTICS_BASE_URL}/history_data/${historyShard(best.id_string)}/${best.id_string}.json.gz`
         : null,
     fin_fout_data:
         best.fin_fout_data
