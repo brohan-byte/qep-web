@@ -1,41 +1,18 @@
 const express = require("express");
 const fs = require("fs");
 const path = require("path");
-
+const ANALYTICS_BASE_URL =
+    "https://huggingface.co/datasets/rohankpdi/qep-analytics/resolve/main";
 const app = express();
 
-const ROOT = path.resolve(__dirname);
+const ROOT = __dirname;
 const WEB_DIR = path.join(ROOT, "web");
-const INDEX_FILE = path.join(
-    ROOT,
-    "web_export",
-    "web_index.json"
-);
-
-const ANALYTICS_DIR = path.join(
-    ROOT,
-    "results",
-    "database",
-    "analytics"
-);
+const INDEX_FILE = path.join(ROOT, "web_export", "web_index.json");
+const ANALYTICS_DIR = path.join(ROOT, "results", "database", "analytics");
 
 const PORT = Number(process.env.PORT || 8080);
 
-
-// ============================================================
-// Middleware
-// ============================================================
-
-app.use(express.json());
-
-
-// ============================================================
-// NN configuration
-//
-// Must match query_nearest_circuit.jl
-// ============================================================
-
-const CONTINUOUS_FIELDS = [
+const FIELDS = [
     "network_fidelity",
     "total_2q_error",
     "measurement_flip",
@@ -43,44 +20,18 @@ const CONTINUOUS_FIELDS = [
     "idle_lambda2",
 ];
 
-const PHYSICAL_LB = [
-    0.60,
-    0.00,
-    0.00,
-    0.00,
-    0.00,
-];
+const LB = [0.60, 0.00, 0.00, 0.00, 0.00];
+const UB = [0.99, 0.20, 0.30, 0.10, 0.10];
+const WEIGHTS = [2, 3, 2, 1, 1, 1, 1];
 
-const PHYSICAL_UB = [
-    0.99,
-    0.20,
-    0.30,
-    0.10,
-    0.10,
-];
-
-const DISTANCE_WEIGHTS = [
-    2.0, // network fidelity
-    3.0, // 2Q error
-    2.0, // measurement
-    1.0, // T1
-    1.0, // T2
-    1.0, // bias coordinate 1
-    1.0, // bias coordinate 2
-];
-
-const DISTANCE_WARNING_THRESHOLD = 0.25;
-
-
-// ============================================================
-// Load lightweight database
-// ============================================================
+const WARNING_DISTANCE = 0.25;
 
 let points = [];
 let strata = new Map();
 
+app.use(express.json());
 
-function stratumKey(point) {
+function keyOf(point) {
     return [
         Number(point.number_registers),
         Number(point.purified_pairs),
@@ -89,12 +40,12 @@ function stratumKey(point) {
     ].join("|");
 }
 
-
-function rebuildStrata() {
+function loadIndex() {
+    points = JSON.parse(fs.readFileSync(INDEX_FILE, "utf8"));
     strata = new Map();
 
     for (const point of points) {
-        const key = stratumKey(point);
+        const key = keyOf(point);
 
         if (!strata.has(key)) {
             strata.set(key, []);
@@ -102,278 +53,95 @@ function rebuildStrata() {
 
         strata.get(key).push(point);
     }
-}
-
-
-function loadIndex() {
-    if (!fs.existsSync(INDEX_FILE)) {
-        throw new Error(
-            `Web index does not exist: ${INDEX_FILE}`
-        );
-    }
-
-    const raw = fs.readFileSync(
-        INDEX_FILE,
-        "utf8"
-    );
-
-    points = JSON.parse(raw);
-
-    rebuildStrata();
 
     console.log(
-        `Loaded ${points.length} web points across ${strata.size} strata`
+        `Loaded ${points.length} points across ${strata.size} strata`
     );
 }
 
+function normalizeBiases(x, y, z) {
+    const biases = [Number(x), Number(y), Number(z)];
 
-// ============================================================
-// Bias helpers
-// ============================================================
-
-function normalizeBiases(bx, by, bz) {
-    const biases = [
-        Number(bx),
-        Number(by),
-        Number(bz),
-    ];
-
-    if (!biases.every(Number.isFinite)) {
-        throw new Error(
-            "Pauli bias values must be finite"
-        );
-    }
-
-    if (!biases.every(x => x >= 0)) {
-        throw new Error(
-            "Pauli bias values must be non-negative"
-        );
-    }
-
-    const total =
-        biases[0] +
-        biases[1] +
-        biases[2];
-
-    if (total <= 0) {
-        throw new Error(
-            "At least one Pauli bias value must be greater than zero"
-        );
-    }
-
-    return [
-        biases[0] / total,
-        biases[1] / total,
-        biases[2] / total,
-    ];
-}
-
-
-// ============================================================
-// Environment vector helpers
-// ============================================================
-
-function normalizePhysical(field, value) {
-    const index =
-        CONTINUOUS_FIELDS.indexOf(field);
-
-    if (index < 0) {
-        throw new Error(
-            `Unknown continuous field: ${field}`
-        );
-    }
-
-    const lb = PHYSICAL_LB[index];
-    const ub = PHYSICAL_UB[index];
-
-    return (
-        (Number(value) - lb) /
-        (ub - lb)
-    );
-}
-
-
-function biasTo2D(bx, by, bz) {
-    const u =
-        Number(by) +
-        0.5 * Number(bz);
-
-    const v =
-        (Math.sqrt(3) / 2) *
-        Number(bz);
-
-    return [u, v];
-}
-
-
-function environmentVector({
-    network_fidelity,
-    total_2q_error,
-    measurement_flip,
-    idle_lambda1,
-    idle_lambda2,
-    bias_x,
-    bias_y,
-    bias_z,
-}) {
-    const [bu, bv] =
-        biasTo2D(
-            bias_x,
-            bias_y,
-            bias_z
-        );
-
-    return [
-        normalizePhysical(
-            "network_fidelity",
-            network_fidelity
-        ),
-
-        normalizePhysical(
-            "total_2q_error",
-            total_2q_error
-        ),
-
-        normalizePhysical(
-            "measurement_flip",
-            measurement_flip
-        ),
-
-        normalizePhysical(
-            "idle_lambda1",
-            idle_lambda1
-        ),
-
-        normalizePhysical(
-            "idle_lambda2",
-            idle_lambda2
-        ),
-
-        bu,
-        bv,
-    ];
-}
-
-
-function pointEnvironmentVector(point) {
-    return environmentVector({
-        network_fidelity:
-            point.network_fidelity,
-
-        total_2q_error:
-            point.total_2q_error,
-
-        measurement_flip:
-            point.measurement_flip,
-
-        idle_lambda1:
-            point.idle_lambda1,
-
-        idle_lambda2:
-            point.idle_lambda2,
-
-        bias_x:
-            point.bias_x,
-
-        bias_y:
-            point.bias_y,
-
-        bias_z:
-            point.bias_z,
-    });
-}
-
-
-function weightedDistance(a, b) {
-    let sum = 0;
-
-    for (let i = 0; i < a.length; i++) {
-        const delta =
-            Number(a[i]) -
-            Number(b[i]);
-
-        sum +=
-            DISTANCE_WEIGHTS[i] *
-            delta *
-            delta;
-    }
-
-    return Math.sqrt(sum);
-}
-
-
-// ============================================================
-// Validation
-// ============================================================
-
-function validatePhysical(values) {
-    for (
-        let i = 0;
-        i < CONTINUOUS_FIELDS.length;
-        i++
+    if (
+        !biases.every(Number.isFinite) ||
+        !biases.every(value => value >= 0)
     ) {
-        const field =
-            CONTINUOUS_FIELDS[i];
+        throw new Error(
+            "Pauli bias values must be finite and non-negative"
+        );
+    }
 
-        const value =
-            Number(values[field]);
+    const sum = biases[0] + biases[1] + biases[2];
 
-        const lb =
-            PHYSICAL_LB[i];
+    if (sum <= 0) {
+        throw new Error(
+            "At least one Pauli bias must be greater than zero"
+        );
+    }
 
-        const ub =
-            PHYSICAL_UB[i];
+    return biases.map(value => value / sum);
+}
+
+function vector(environment) {
+    const physical = FIELDS.map((field, index) => {
+        const value = Number(environment[field]);
 
         if (
             !Number.isFinite(value) ||
-            value < lb ||
-            value > ub
+            value < LB[index] ||
+            value > UB[index]
         ) {
             throw new Error(
-                `${field}=${value} is outside env_v1 bounds [${lb}, ${ub}]`
+                `${field}=${value} is outside env_v1 bounds ` +
+                `[${LB[index]}, ${UB[index]}]`
             );
         }
-    }
+
+        return (
+            (value - LB[index]) /
+            (UB[index] - LB[index])
+        );
+    });
+
+    const by = Number(environment.bias_y);
+    const bz = Number(environment.bias_z);
+
+    return [
+        ...physical,
+        by + 0.5 * bz,
+        (Math.sqrt(3) / 2) * bz,
+    ];
 }
 
-
-// ============================================================
-// Query
-// ============================================================
+function weightedDistance(a, b) {
+    return Math.sqrt(
+        a.reduce(
+            (sum, value, index) =>
+                sum +
+                WEIGHTS[index] *
+                (value - b[index]) ** 2,
+            0
+        )
+    );
+}
 
 function queryNearest(body) {
-    const nr =
-        Number(body.number_registers);
+    const nr = Number(body.number_registers);
+    const pp = Number(body.purified_pairs);
+    const metric = String(body.evolution_metric);
+    const codeDistance = Number(body.code_distance);
 
-    const pp =
-        Number(body.purified_pairs);
-
-    const metric =
-        String(body.evolution_metric);
-
-    const codeDistance =
-        Number(body.code_distance);
-
-
-    if (
-        !Number.isInteger(nr) ||
-        nr < 2
-    ) {
+    if (!Number.isInteger(nr) || nr < 2) {
         throw new Error(
             "number_registers must be >= 2"
         );
     }
 
-
-    if (
-        !Number.isInteger(pp) ||
-        pp < 1
-    ) {
+    if (!Number.isInteger(pp) || pp < 1) {
         throw new Error(
             "purified_pairs must be >= 1"
         );
     }
-
 
     if (pp > nr) {
         throw new Error(
@@ -381,8 +149,14 @@ function queryNearest(body) {
         );
     }
 
+    const [bias_x, bias_y, bias_z] =
+        normalizeBiases(
+            body.bias_x,
+            body.bias_y,
+            body.bias_z
+        );
 
-    const environment = {
+    const requested = {
         network_fidelity:
             Number(body.network_fidelity),
 
@@ -397,22 +171,11 @@ function queryNearest(body) {
 
         idle_lambda2:
             Number(body.idle_lambda2),
+
+        bias_x,
+        bias_y,
+        bias_z,
     };
-
-
-    validatePhysical(environment);
-
-
-    const [
-        biasX,
-        biasY,
-        biasZ,
-    ] = normalizeBiases(
-        body.bias_x,
-        body.bias_y,
-        body.bias_z
-    );
-
 
     const key = [
         nr,
@@ -421,131 +184,52 @@ function queryNearest(body) {
         codeDistance,
     ].join("|");
 
-
     const candidates =
         strata.get(key);
 
-
-    if (
-        !candidates ||
-        candidates.length === 0
-    ) {
+    if (!candidates?.length) {
         throw new Error(
-            "No exported database points match:\n" +
-            `number_registers = ${nr}\n` +
-            `purified_pairs = ${pp}\n` +
-            `evolution_metric = ${metric}\n` +
-            `code_distance = ${codeDistance}`
+            `No exported database points match: ` +
+            `number_registers=${nr}, ` +
+            `purified_pairs=${pp}, ` +
+            `evolution_metric=${metric}, ` +
+            `code_distance=${codeDistance}`
         );
     }
 
-
     const queryVector =
-        environmentVector({
-            ...environment,
-
-            bias_x: biasX,
-            bias_y: biasY,
-            bias_z: biasZ,
-        });
-
+        vector(requested);
 
     let best = null;
     let bestDistance = Infinity;
 
-
     for (const point of candidates) {
-        const pointVector =
-            pointEnvironmentVector(point);
-
         const distance =
             weightedDistance(
                 queryVector,
-                pointVector
+                vector(point)
             );
 
         if (distance < bestDistance) {
-            bestDistance = distance;
             best = point;
+            bestDistance = distance;
         }
     }
 
-
-    let warning = null;
-
-    if (
-        bestDistance >
-        DISTANCE_WARNING_THRESHOLD
-    ) {
-        warning =
-            "Nearest database environment has normalized distance=" +
-            bestDistance.toFixed(4) +
-            ", above the current baseline warning threshold " +
-            DISTANCE_WARNING_THRESHOLD +
-            ".";
-    }
-
-
-    const requested = {
-        ...environment,
-
-        bias_x: biasX,
-        bias_y: biasY,
-        bias_z: biasZ,
-    };
-
-
-    const matched = {
-        network_fidelity:
-            Number(best.network_fidelity),
-
-        total_2q_error:
-            Number(best.total_2q_error),
-
-        measurement_flip:
-            Number(best.measurement_flip),
-
-        idle_lambda1:
-            Number(best.idle_lambda1),
-
-        idle_lambda2:
-            Number(best.idle_lambda2),
-
-        bias_x:
-            Number(best.bias_x),
-
-        bias_y:
-            Number(best.bias_y),
-
-        bias_z:
-            Number(best.bias_z),
-    };
-
-
-    const performance = {
-        logical_qubit_fidelity:
-            best.logical_qubit_fidelity,
-
-        purified_pairs_fidelity:
-            best.purified_pairs_fidelity,
-
-        average_marginal_fidelity:
-            best.average_marginal_fidelity,
-
-        success_probability:
-            best.success_probability,
-    };
-
-
-    const assets = {
-
-        history_data:
-            best.history_data,
-
-        fin_fout_data:
-            best.fin_fout_data,
-    };
-
+    const matched =
+        Object.fromEntries(
+            [
+                ...FIELDS,
+                "bias_x",
+                "bias_y",
+                "bias_z",
+            ].map(
+                field => [
+                    field,
+                    Number(best[field]),
+                ]
+            )
+        );
 
     return {
         task_id:
@@ -575,7 +259,14 @@ function queryNearest(body) {
         distance:
             bestDistance,
 
-        warning,
+        warning:
+            bestDistance > WARNING_DISTANCE
+                ? (
+                    `Nearest database environment has normalized ` +
+                    `distance=${bestDistance.toFixed(4)}, above the ` +
+                    `warning threshold ${WARNING_DISTANCE}.`
+                )
+                : null,
 
         circuit_length:
             Number(best.circuit_length),
@@ -585,55 +276,66 @@ function queryNearest(body) {
                 ? best.circuit_ops
                 : [],
 
-        performance,
+        performance: {
+            logical_qubit_fidelity:
+                best.logical_qubit_fidelity,
+
+            purified_pairs_fidelity:
+                best.purified_pairs_fidelity,
+
+            average_marginal_fidelity:
+                best.average_marginal_fidelity,
+
+            success_probability:
+                best.success_probability,
+        },
 
         reliable:
             best.reliable,
 
         requested,
-
         matched,
+        assets: {
+    history_data:
+        best.history_data
+            ? `${ANALYTICS_BASE_URL}/history_data/${best.id_string}.json.gz`
+            : null,
 
-        assets,
+    fin_fout_data:
+        best.fin_fout_data
+            ? `${ANALYTICS_BASE_URL}/fin_fout/${best.id_string}.json`
+            : null,
+},
     };
 }
-
-
-// ============================================================
-// Routes
-// ============================================================
 
 app.get(
     "/health",
     (req, res) => {
         res
-            .status(200)
             .type("text/plain")
             .send("ok");
     }
 );
 
-
 app.post(
     "/api/query",
     (req, res) => {
         try {
-            const result =
-                queryNearest(req.body);
-
-            res.json(result);
-
+            res.json(
+                queryNearest(req.body)
+            );
         } catch (error) {
             console.error(error);
 
-            res.status(400).json({
-                error:
-                    error.message,
-            });
+            res
+                .status(400)
+                .json({
+                    error: error.message,
+                });
         }
     }
 );
-
 
 app.post(
     "/api/reload",
@@ -642,29 +344,25 @@ app.post(
             loadIndex();
 
             res.json({
-                points:
-                    points.length,
-
-                strata:
-                    strata.size,
+                points: points.length,
+                strata: strata.size,
             });
-
         } catch (error) {
-            console.error(error);
-
-            res.status(500).json({
-                error:
-                    error.message,
-            });
+            res
+                .status(500)
+                .json({
+                    error: error.message,
+                });
         }
     }
 );
 
-
-// ============================================================
-// Static analytics
-// ============================================================
-
+/*
+ * Serve analytics JSON.
+ *
+ * Disable caching while the database is
+ * still actively being regenerated.
+ */
 app.use(
     "/assets",
     express.static(
@@ -683,40 +381,19 @@ app.use(
     )
 );
 
-// ============================================================
-// Frontend
-// ============================================================
-
+/*
+ * Serve frontend.
+ */
 app.use(
     express.static(
         WEB_DIR,
         {
-            index:
-                "index.html",
+            index: "index.html",
         }
     )
 );
 
-
-app.get(
-    "/",
-    (req, res) => {
-        res.sendFile(
-            path.join(
-                WEB_DIR,
-                "index.html"
-            )
-        );
-    }
-);
-
-
-// ============================================================
-// Start
-// ============================================================
-
 loadIndex();
-
 
 app.listen(
     PORT,
@@ -724,22 +401,6 @@ app.listen(
     () => {
         console.log(
             `QEP web server listening on 0.0.0.0:${PORT}`
-        );
-
-        console.log(
-            `Web points: ${points.length}`
-        );
-
-        console.log(
-            `Strata: ${strata.size}`
-        );
-
-        console.log(
-            `Index: ${INDEX_FILE}`
-        );
-
-        console.log(
-            `Analytics: ${ANALYTICS_DIR}`
         );
     }
 );

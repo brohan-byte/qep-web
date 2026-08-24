@@ -1,5 +1,6 @@
-
-# Generated analytics images
-results/database/analytics/history/
-results/database/analytics/fin_fout/plots/
-results/database/analytics/circuits/
+# Large analytics data (stored externally)
+results/database/analytics/history_data/
+results/database/analytics/history_data_sharded/
+results/database/analytics/history_data_gz/
+results/database/analytics/fin_fout/data_json/
+web_export/web_index.json
