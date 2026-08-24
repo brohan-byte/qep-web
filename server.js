@@ -9,7 +9,8 @@ const ROOT = __dirname;
 const WEB_DIR = path.join(ROOT, "web");
 const INDEX_FILE = path.join(ROOT, "web_export", "web_index.json");
 const ANALYTICS_DIR = path.join(ROOT, "results", "database", "analytics");
-
+const INDEX_URL =
+    "https://huggingface.co/datasets/rohankpdi/qep-analytics/resolve/main/web_index.json";
 const PORT = Number(process.env.PORT || 8080);
 
 const FIELDS = [
@@ -40,17 +41,16 @@ function keyOf(point) {
     ].join("|");
 }
 
-function loadIndex() {
-    if (!fs.existsSync(INDEX_FILE)) {
-        console.warn(
-            "web_index.json not found, starting with empty index"
+async function loadIndex() {
+    const response = await fetch(INDEX_URL);
+
+    if (!response.ok) {
+        throw new Error(
+            `Failed to load web index: ${response.status}`
         );
-        points = [];
-        strata = new Map();
-        return;
     }
 
-    points = JSON.parse(fs.readFileSync(INDEX_FILE, "utf8"));
+    points = await response.json();
     strata = new Map();
 
     for (const point of points) {
@@ -349,8 +349,10 @@ app.post(
     "/api/reload",
     (req, res) => {
         try {
-            loadIndex();
-
+(async () => {
+    await loadIndex();
+    // start server here
+})();
             res.json({
                 points: points.length,
                 strata: strata.size,
