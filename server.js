@@ -1,16 +1,11 @@
 const express = require("express");
 const fs = require("fs");
 const path = require("path");
-const ANALYTICS_BASE_URL =
-    "https://huggingface.co/datasets/rohankpdi/qep-analytics/resolve/main";
 const app = express();
-
+const zlib = require("zlib");
 const ROOT = __dirname;
 const WEB_DIR = path.join(ROOT, "web");
-const ANALYTICS_DIR = path.join(ROOT, "results", "database", "analytics");
 const PORT = Number(process.env.PORT || 8080);
-const INDEX_BASE_URL =
-    "https://huggingface.co/datasets/rohankpdi/qep-analytics/resolve/main/web_index_strata";
 const FIELDS = [
     "network_fidelity",
     "total_2q_error",
@@ -18,11 +13,23 @@ const FIELDS = [
     "idle_lambda1",
     "idle_lambda2",
 ];
+const HF_BASE =
+"https://huggingface.co/datasets/rohankpdi/qep-analytics/resolve/main";
 
+const INDEX_BASE_URL =
+`${HF_BASE}/web_index_strata`;
+
+const METADATA_BASE_URL =
+`${HF_BASE}/point_metadata`;
+
+const HISTORY_BASE_URL =
+`${HF_BASE}/history_data`;
+
+const FIN_FOUT_BASE_URL =
+`${HF_BASE}/fin_fout`;
 const LB = [0.60, 0.00, 0.00, 0.00, 0.00];
 const UB = [0.99, 0.20, 0.30, 0.10, 0.10];
 const WEIGHTS = [2, 3, 2, 1, 1, 1, 1];
-
 const WARNING_DISTANCE = 0.25;
 
 
@@ -34,7 +41,70 @@ function historyShard(id) {
         .createHash("md5")
         .update(id)
         .digest("hex")
-        .slice(0, 3);
+        .slice(0, 4);
+}
+
+
+async function loadMetadata(id) {
+
+    const shard =
+        shardOf(id);
+
+    const url =
+        `${METADATA_BASE_URL}/shard_${shard}.jsonl.gz`;
+
+    const response =
+        await fetch(url);
+
+    if (!response.ok) {
+        throw new Error(
+            `Metadata shard failed: ${response.status}`
+        );
+    }
+
+    const buffer =
+        Buffer.from(
+            await response.arrayBuffer()
+        );
+
+    const text =
+        zlib
+            .gunzipSync(buffer)
+            .toString("utf8");
+
+    for (const line of text.split("\n")) {
+
+        if (!line.trim()) continue;
+
+        const record =
+            JSON.parse(line);
+
+        if (record.id_string === id) {
+            return record;
+        }
+    }
+
+    throw new Error(
+        `Metadata missing for ${id}`
+    );
+}
+
+
+function shardOf(id) {
+    const crypto = require("crypto");
+
+    return (
+        parseInt(
+            crypto
+                .createHash("md5")
+                .update(id)
+                .digest("hex")
+                .slice(0, 8),
+            16
+        ) % 4096
+    )
+        .toString()
+        .padStart(4, "0");
 }
 function keyOf(point) {
     return [
@@ -227,6 +297,7 @@ async function queryNearest(body) {
             bestDistance = distance;
         }
     }
+    const metadata = await loadMetadata(best.id_string);
 
     const matched =
         Object.fromEntries(
@@ -281,42 +352,26 @@ async function queryNearest(body) {
                 : null,
 
         circuit_length:
-            Number(best.circuit_length),
+    Number(metadata.circuit_length),
 
-        circuit_ops:
-            Array.isArray(best.circuit_ops)
-                ? best.circuit_ops
-                : [],
-
-        performance: {
-            logical_qubit_fidelity:
-                best.logical_qubit_fidelity,
-
-            purified_pairs_fidelity:
-                best.purified_pairs_fidelity,
-
-            average_marginal_fidelity:
-                best.average_marginal_fidelity,
-
-            success_probability:
-                best.success_probability,
-        },
-
+circuit_ops:
+    Array.isArray(metadata.circuit_ops)
+        ? metadata.circuit_ops
+        : [],
+        performance:metadata.performance,
         reliable:
             best.reliable,
 
         requested,
         matched,
         assets: {
-history_data:
-    best.history_data
-        ? `${ANALYTICS_BASE_URL}/history_data/${historyShard(best.id_string)}/${best.id_string}.json.gz`
-        : null,
+
+    history_data:
+        `${HISTORY_BASE_URL}/shard_${shardOf(best.id_string)}.jsonl.gz`,
+
     fin_fout_data:
-        best.fin_fout_data
-            ? `${ANALYTICS_BASE_URL}/fin_fout/${best.id_string}.json`
-            : null,
-},
+        `${FIN_FOUT_BASE_URL}/shard_${shardOf(best.id_string)}.jsonl.gz`
+}
     };
 }
 
@@ -371,23 +426,6 @@ app.post(
  * Disable caching while the database is
  * still actively being regenerated.
  */
-app.use(
-    "/assets",
-    express.static(
-        ANALYTICS_DIR,
-        {
-            maxAge: 0,
-            etag: false,
-
-            setHeaders: res => {
-                res.setHeader(
-                    "Cache-Control",
-                    "no-store"
-                );
-            },
-        }
-    )
-);
 
 /*
  * Serve frontend.
