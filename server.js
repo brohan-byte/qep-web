@@ -91,6 +91,42 @@ function metadataShard(id) {
     .padStart(4, "0");
 }
 
+async function loadHistory(id) {
+    const shard = historyShard(id);
+    const url =
+        `${HISTORY_BASE_URL}/shard_${shard}.jsonl.gz`;
+
+    const response = await fetch(url);
+
+    if (!response.ok) {
+        throw new Error(
+            `History shard failed: ${response.status}`
+        );
+    }
+
+    const buffer = Buffer.from(
+        await response.arrayBuffer()
+    );
+
+    const text = zlib
+        .gunzipSync(buffer)
+        .toString("utf8");
+
+    for (const line of text.split("\n")) {
+        if (!line.trim()) continue;
+
+        const record = JSON.parse(line);
+
+        if (record.id_string === id) {
+            return record.data;
+        }
+    }
+
+    throw new Error(
+        `History missing for ${id}`
+    );
+}
+
 async function loadFinFout(id) {
     const shard = finFoutShard(id);
 const url =
@@ -363,8 +399,6 @@ async function queryNearest(body){
 if (!Array.isArray(candidates)) {
     throw new Error("Stratum is not an array");
 }
-console.log("candidate count:", candidates.length);
-console.log("first candidate:", candidates[0]);
     for (const point of candidates){
 
     if (!point) {
@@ -384,8 +418,6 @@ console.log("first candidate:", candidates[0]);
         bestDistance = distance;
     }
 }    
-console.log("candidate count:", candidates.length);
-console.log("first candidate:", candidates[0]);
 
     if (!best){
         throw new Error(
@@ -393,13 +425,10 @@ console.log("first candidate:", candidates[0]);
         );
     }
 
-    console.log("LOOP FINISHED");
-console.log("BEST:", best);
-console.log("BEST ID:", best?.id_string);
-console.log("BEST DISTANCE:", bestDistance);
+    const metadata = await loadMetadata(best.id_string);
     const metadata = await loadMetadata(best.id_string);
 
-    let finFout = null;
+let finFout = null;
 
 try {
     finFout = await loadFinFout(best.id_string);
@@ -407,6 +436,13 @@ try {
 } catch (error) {
     console.error("FIN ERROR:", error);
 }
+try {
+    history = await loadHistory(best.id_string);
+    console.log("HISTORY LOADED:", !!history);
+} catch (error) {
+    console.error("HISTORY ERROR:", error);
+}
+
     const matched = {
     network_fidelity: best.network_fidelity,
     total_2q_error: best.total_2q_error,
@@ -417,6 +453,12 @@ try {
     bias_y: best.bias_y,
     bias_z: best.bias_z
 };
+    console.log("RETURN FIN FOUT:", finFout ? "YES" : "NO");
+console.log("FIN KEYS:", finFout ? Object.keys(finFout) : null);
+console.log(
+    "FINAL RESPONSE FIN:",
+    finFout ? Object.keys(finFout) : null
+);
     return {
     id_string: best.id_string,
 
@@ -452,11 +494,8 @@ try {
     requested,
 
     assets: {
-        history_data:
-            `${HISTORY_BASE_URL}/shard_${historyShard(best.id_string)}.jsonl.gz`,
-
-        fin_fout_data:
-            finFout
+        history_data: history,
+        fin_fout_data: finFout
     }
 };
 }

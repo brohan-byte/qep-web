@@ -26,17 +26,16 @@ async function fetchJson(url) {
 
     return response.json();
 }
-async function renderHistoryPanel(url) {
+async function renderHistoryPanel(data) {
     const container = document.getElementById("history-figure");
 
-    if (!url) {
+     if (!data) {
         container.innerHTML =
             "<p class='muted'>Optimization history is not available for this circuit.</p>";
         return;
     }
-
     try {
-        const data = await fetchJson(url);
+
         const fitness = data.fitness_history;
 
         if (!Array.isArray(fitness) || !fitness.length || !Array.isArray(fitness[0])) {
@@ -135,18 +134,15 @@ async function renderHistoryPanel(url) {
             `<p class="muted">Could not load optimization history (${error.message}).</p>`;
     }
 }
-async function renderFinFoutPanel(url) {
+async function renderFinFoutPanel(data) {
     const container = document.getElementById("fin-fout-figure");
 
-    if (!url) {
+    if (!data) {
         container.innerHTML =
             "<p class='muted'>F-in/F-out analysis is not available for this circuit.</p>";
         return;
     }
-
     try {
-
-        const data = await fetchJson(url);
         if (!Array.isArray(data.f_ins) || !data.f_ins.length) {
             throw new Error("f_ins is empty or missing");
         }
