@@ -426,7 +426,6 @@ if (!Array.isArray(candidates)) {
     }
 
     const metadata = await loadMetadata(best.id_string);
-    const metadata = await loadMetadata(best.id_string);
 
 let finFout = null;
 
