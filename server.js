@@ -424,6 +424,15 @@ if (!Array.isArray(candidates)) {
             "No nearest point found"
         );
     }
+const warning =
+    bestDistance > WARNING_DISTANCE
+        ? (
+            `Caution: the nearest database environment has normalized ` +
+            `distance=${bestDistance.toFixed(4)}, above the recommended ` +
+            `threshold of ${WARNING_DISTANCE.toFixed(2)}. This circuit ` +
+            `may not closely represent the requested environment.`
+        )
+        : null;
 
     const metadata = await loadMetadata(best.id_string);
 
@@ -462,6 +471,7 @@ console.log(
     id_string: best.id_string,
 
     distance: bestDistance,
+    warning,
 
     matched,
 

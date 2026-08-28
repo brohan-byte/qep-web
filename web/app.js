@@ -1,6 +1,6 @@
 const $ = id => document.getElementById(id);
 const num = id => Number($(id).value);
-
+const MAX_NN_DISTANCE = 0.25;
 function environmentTable(requested, matched) {
     const rows = [
         ["Network fidelity", "network_fidelity"],
@@ -92,8 +92,6 @@ async function queryCircuit() {
 
         $("match-summary").innerHTML = `
             <p><strong>Database ID:</strong> ${result.id_string}</p>
-            <p><strong>Task:</strong> ${result.task_id}</p>
-            <p><strong>Sobol index:</strong> ${result.sobol_index}</p>
             <p>
                 <strong>Normalized NN distance:</strong>
                 ${Number(result.distance).toFixed(6)}
